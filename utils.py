@@ -13,7 +13,7 @@ import torch.nn as nn
 import numpy as np
 from w3lib.html import remove_tags
 from nltk.translate.bleu_score import sentence_bleu
-from models.mutual_info import sample_batch, mutual_information
+from src.mutual_info import sample_batch, mutual_information
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
