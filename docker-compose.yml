@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./saved_models:/app/saved_models
+      - ./data:/app/data
+    environment:
+      - DEEPSC_CHECKPOINT=saved_models/deepsc_AWGN.pth
+      - DEEPSC_VOCAB=data/vocab.json
+      - DEEPSC_CHANNEL=AWGN
+      - DEEPSC_SNR=10.0

@@ -2,5 +2,10 @@ torch
 nltk
 w3lib
 tqdm
-sklearn
-bert4keras==0.4.2
+scikit-learn
+fastapi
+uvicorn[standard]
+httpx
+pytest
+pydantic
+numpy
