@@ -179,3 +179,75 @@ GitHub Actions automatically:
   doi     = {10.1109/TSP.2021.3071210}
 }
 ```
+
+---
+
+## Updates
+
+### RAG research agent (LangGraph + FAISS)
+
+Added a research Q&A agent over **Xie et al. 2021** (and this repo's source comments). Default LLM/embeddings are **Gemini** (free Google AI Studio key). OpenAI and Anthropic remain optional via `RAG_LLM_PROVIDER`. After answering, it can optionally pass a sentence through the trained DeepSC model (`channel_sim` LangChain Tool) to show BLEU under AWGN / Rayleigh / Rician.
+
+**New layout**
+
+```
+├── rag_agent/
+│   ├── config.py           # API keys, LLM / embedding models, FAISS path
+│   ├── ingest.py           # Chunk Xie 2021 + source comments → FAISS
+│   ├── nodes.py            # retrieve / grade / rewrite / generate / channel_sim
+│   ├── tools.py            # LangChain Tool wrapping DeepSC + greedy_decode_L
+│   ├── graph.py            # LangGraph StateGraph + retry policy
+│   ├── run.py              # CLI: python -m rag_agent.run "your question"
+│   └── data/README.md      # How to add local xie2021.txt (gitignored)
+├── tests/test_rag_agent.py # RAG graph routing + mocked channel_sim tool
+└── .env.example            # Template for GOOGLE_API_KEY / provider overrides
+```
+
+**Flow**
+
+```
+User question
+   │
+   ▼
+LangGraph Agent (rag_agent/graph.py)
+   │
+   ▼
+[retrieve]  →  FAISS top-k over local xie2021.txt + src/*.py comments
+   │
+   ▼
+[grade]     →  LLM (Gemini / OpenAI / Anthropic): retrieved docs relevant?
+   │          │
+   ▼          ▼
+[generate]  [rewrite → retrieve]   ← at most RAG_MAX_RETRIES (default 2)
+   │
+   ▼
+[channel_sim] (optional) → DeepSC + greedy_decode_L → reconstructed text + BLEU
+   │
+   ▼
+Final answer
+```
+
+**Setup**
+
+```bash
+cp .env.example .env   # set GOOGLE_API_KEY (https://aistudio.google.com/apikey)
+pip install -r requirements.txt
+
+# Add paper text yourself (not in the repo), e.g. from arXiv:2006.10685
+# → rag_agent/data/xie2021.txt   (see rag_agent/data/README.md)
+
+# Build the local FAISS index once (must match RAG_EMBED_PROVIDER)
+python -m rag_agent.ingest
+```
+
+Changing embedding provider or model requires rebuilding the FAISS index. Both `rag_agent/data/xie2021.txt` and `rag_agent/data/faiss_index/` are gitignored — supply the corpus and rebuild the index locally after clone.
+
+**Ask a question**
+
+```bash
+python -m rag_agent.run "What is the DeepSC architecture?"
+python -m rag_agent.run --snr 8 --channel Rayleigh "How does DeepSC handle low SNR?"
+python -m rag_agent.run --no-channel-sim "What is sentence similarity vs BLEU?"
+```
+
+`channel_sim` loads the same checkpoint as the API (`DEEPSC_CHECKPOINT`, `DEEPSC_VOCAB`). If those files are missing, the agent still answers from the paper and prints a clear skip message for the wireless demo. DeepSC's vocab is Europarl (max 30 tokens); OOV technical terms become `<UNK>` and can lower BLEU — that is expected.

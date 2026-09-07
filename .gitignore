@@ -2,7 +2,7 @@ __pycache__/
 *.py[cod]
 *.pth
 *.pkl
-data/
+/data/
 .idea/
 .venv/
 venv/
@@ -11,3 +11,5 @@ venv/
 dist/
 build/
 .DS_Store
+rag_agent/data/faiss_index/
+rag_agent/data/xie2021.txt
